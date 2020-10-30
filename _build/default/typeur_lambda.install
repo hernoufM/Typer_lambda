@@ -1,0 +1,8 @@
+lib: [
+  "_build/install/default/lib/typeur_lambda/META"
+  "_build/install/default/lib/typeur_lambda/dune-package"
+  "_build/install/default/lib/typeur_lambda/opam"
+]
+bin: [
+  "_build/install/default/bin/typeur_lambda"
+]
