@@ -1,2 +1,3 @@
 open Lambda;;
-let () = reduce_lambda sigma;; 
+open Type;;
+let () = typeur sigma;; 

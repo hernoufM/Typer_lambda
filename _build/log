@@ -1,10 +1,10 @@
-# dune utop
+# dune build
 # OCAMLPARAM: unset
 # Workspace root: /home/hernouf/Study/TAS/typeur_lambda/typeur_lambda
-$ /usr/bin/nproc > /tmp/dune0bff62.output 2> /dev/null
+$ /usr/bin/nproc > /tmp/duneda6c4c.output 2> /dev/null
 # Auto-detected concurrency: 8
 # disable binary cache
-$ /usr/bin/ocamlc.opt -config > /tmp/duneefeba0.output
+$ /usr/bin/ocamlc.opt -config > /tmp/dune0bcd14.output
 # Dune context:
 #  { name = "default"
 #  ; kind = "default"
@@ -105,4 +105,10 @@ $ /usr/bin/ocamlc.opt -config > /tmp/duneefeba0.output
 #      ; windows_unicode = false
 #      }
 #  }
-$ (cd _build/default && /usr/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -w -24 -g -o .utop/utop.exe -custom /usr/lib/ocaml/compiler-libs/ocamlcommon.cma /usr/lib/ocaml/compiler-libs/ocamlbytecomp.cma /usr/lib/ocaml/compiler-libs/ocamltoplevel.cma /home/hernouf/.opam/default/lib/findlib/findlib.cma /home/hernouf/.opam/default/lib/findlib/findlib_top.cma /home/hernouf/.opam/default/lib/result/result.cma /home/hernouf/.opam/default/lib/lwt/lwt.cma /usr/lib/ocaml/unix.cma -I /usr/lib/ocaml /usr/lib/ocaml/bigarray.cma -I /usr/lib/ocaml /home/hernouf/.opam/default/lib/mmap/mmap.cma /home/hernouf/.opam/default/lib/ocplib-endian/ocplib_endian.cma /home/hernouf/.opam/default/lib/ocplib-endian/bigstring/ocplib_endian_bigstring.cma /usr/lib/ocaml/threads/threads.cma -I /usr/lib/ocaml /home/hernouf/.opam/default/lib/lwt/unix/lwt_unix.cma -I /home/hernouf/.opam/default/lib/lwt/unix /home/hernouf/.opam/default/lib/react/react.cma /home/hernouf/.opam/default/lib/lwt_react/lwt_react.cma /home/hernouf/.opam/default/lib/camomile/default_config/camomileDefaultConfig.cma /home/hernouf/.opam/default/lib/camomile/library/camomileLibrary.cma /home/hernouf/.opam/default/lib/camomile/lib_default/camomileLibraryDefault.cma /home/hernouf/.opam/default/lib/camomile/dyn/camomileLibraryDyn.cma /home/hernouf/.opam/default/lib/camomile/camomile_yuge.cma /home/hernouf/.opam/default/lib/charInfo_width/charInfo_width.cma /home/hernouf/.opam/default/lib/zed/zed.cma /home/hernouf/.opam/default/lib/lwt_log/core/lwt_log_core.cma /home/hernouf/.opam/default/lib/lwt_log/lwt_log.cma /home/hernouf/.opam/default/lib/trie/trie.cma /home/hernouf/.opam/default/lib/mew/mew.cma /home/hernouf/.opam/default/lib/mew_vi/mew_vi.cma /home/hernouf/.opam/default/lib/lambda-term/lambda_term.cma -I /home/hernouf/.opam/default/lib/lambda-term /home/hernouf/.opam/default/lib/utop/uTop.cma lib/typeur_lambda.cma .utop/.utop.eobjs/byte/dune__exe__Utop.cmo -linkall -warn-error -31)
+$ (cd _build/default && /usr/bin/ocamldep.opt -modules -impl src/main.ml) > _build/default/src/.main.eobjs/main.ml.d
+$ (cd _build/default && /usr/bin/ocamldep.opt -modules -impl src/type.ml) > _build/default/src/.main.eobjs/type.ml.d
+$ (cd _build/default && /usr/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -bin-annot -I src/.main.eobjs/byte -I lib/.typeur_lambda.objs/byte -I lib/.typeur_lambda.objs/native -no-alias-deps -opaque -open Dune__exe -o src/.main.eobjs/byte/dune__exe__Type.cmo -c -impl src/type.ml)
+$ (cd _build/default && /usr/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -bin-annot -I src/.main.eobjs/byte -I lib/.typeur_lambda.objs/byte -I lib/.typeur_lambda.objs/native -no-alias-deps -opaque -open Dune__exe -o src/.main.eobjs/byte/dune__exe__Main.cmo -c -impl src/main.ml)
+$ (cd _build/default && /usr/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I src/.main.eobjs/byte -I src/.main.eobjs/native -I lib/.typeur_lambda.objs/byte -I lib/.typeur_lambda.objs/native -intf-suffix .ml -no-alias-deps -opaque -open Dune__exe -o src/.main.eobjs/native/dune__exe__Main.cmx -c -impl src/main.ml)
+$ (cd _build/default && /usr/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I src/.main.eobjs/byte -I src/.main.eobjs/native -I lib/.typeur_lambda.objs/byte -I lib/.typeur_lambda.objs/native -intf-suffix .ml -no-alias-deps -opaque -open Dune__exe -o src/.main.eobjs/native/dune__exe__Type.cmx -c -impl src/type.ml)
+$ (cd _build/default && /usr/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -o src/main.exe lib/typeur_lambda.cmxa /usr/lib/ocaml/unix.cmxa -I /usr/lib/ocaml src/.main.eobjs/native/dune__exe.cmx src/.main.eobjs/native/dune__exe__Lambda.cmx src/.main.eobjs/native/dune__exe__Type.cmx src/.main.eobjs/native/dune__exe__Main.cmx)

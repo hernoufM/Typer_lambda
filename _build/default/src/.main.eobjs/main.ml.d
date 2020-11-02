@@ -1,1 +1,1 @@
-src/main.ml: Lambda
+src/main.ml: Lambda Type
