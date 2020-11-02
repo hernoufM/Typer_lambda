@@ -3,3 +3,6 @@ module Lambda = Dune__exe__Lambda
 
 (** @canonical Dune__exe.Main *)
 module Main = Dune__exe__Main
+
+(** @canonical Dune__exe.Type *)
+module Type = Dune__exe__Type

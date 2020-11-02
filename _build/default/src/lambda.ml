@@ -34,25 +34,54 @@ let fresh_var, reset_gen =
         (function () -> char_gen := 'a'; num_gen := 0));;     
 
 module StringMap = Map.Make(String);;
+module StringSet = Set.Make(String);;
 
 let barendregt lt =
-    let rec barendregt_rec lt rename =
+    let rec barendregt_rec lt rename var_globs =
         match lt with
             Var(name) -> 
                 (match StringMap.find_opt name rename with
                     None -> create_var name
                     | Some y -> create_var y)
             | Abstraction(varname,lt) -> 
-                (let new_varname = fresh_var ()
-                    in
-                        create_abs new_varname (barendregt_rec lt (StringMap.add varname new_varname rename)))
+                (let new_varname = ref (fresh_var ())
+                in
+                    while StringSet.mem !new_varname var_globs do
+                        new_varname := fresh_var ()
+                    done;
+                    create_abs !new_varname (barendregt_rec lt (StringMap.add varname !new_varname rename) var_globs))
             | Application(lt1, lt2) -> 
-                create_app (barendregt_rec lt1 rename) (barendregt_rec lt2 rename)
+                create_app (barendregt_rec lt1 rename var_globs) (barendregt_rec lt2 rename var_globs)
+    and variables_globals lt var_libres =
+            match lt with
+                Var(name) -> 
+                    if StringSet.mem name var_libres
+                    then StringSet.empty
+                    else StringSet.singleton name
+            | Abstraction(varname,corps) -> 
+                variables_globals corps (StringSet.add varname var_libres)
+            | Application(lt1, lt2) -> 
+                StringSet.union (variables_globals lt1 var_libres) (variables_globals lt2 var_libres)
     in
-        barendregt_rec lt StringMap.empty;;
+        let var_globs = variables_globals lt StringSet.empty
+        in
+            barendregt_rec lt StringMap.empty var_globs;;
 
 (* λx.((λx.λy.x y) (λy.y z)) x *)
-let lambda_ex = create_abs "x" (create_app (create_app (create_abs "x" (create_abs "y" (create_app (create_var "x") (create_var "y")))) (create_abs "y" (create_app (create_var "y") (create_var "z")))) (create_var "x"));;
+let lambda_ex = 
+    create_abs "x" 
+        (create_app 
+            (create_app 
+                (create_abs "x" 
+                    (create_abs "y" 
+                        (create_app 
+                            (create_var "x") 
+                            (create_var "y")))) 
+                (create_abs "y" 
+                    (create_app 
+                        (create_var "y") 
+                        (create_var "z")))) 
+            (create_var "x"));;
 
 let rec instantie lt varname rempl =
     match lt with
@@ -84,7 +113,20 @@ let rec ltrcbv_etape lt =
         | x -> x;;
 
 (* (λx.x x x) (λx.x x x) *)
-let sigma = create_app (create_abs "x" (create_app (create_app (create_var "x") (create_var "x")) (create_var "x"))) (create_abs "x" (create_app (create_app (create_var "x") (create_var "x")) (create_var "x")))
+let sigma = 
+    create_app 
+        (create_abs "x" 
+            (create_app 
+                (create_app 
+                    (create_var "x") 
+                    (create_var "x")) 
+                (create_var "x"))) 
+        (create_abs "x" 
+            (create_app 
+                (create_app 
+                    (create_var "x") 
+                    (create_var "x")) 
+                (create_var "x")))
 
 let reduce_lambda lt = 
     let lambda = ref lt
