@@ -9,6 +9,9 @@ type lambda_terme =
     | Head of lambda_terme
     | Tail of lambda_terme
     | Cons of lambda_terme * lambda_terme
+    | IfZte of lambda_terme * lambda_terme * lambda_terme
+    | IfEte of lambda_terme * lambda_terme * lambda_terme
+    | Fix of lambda_terme
 
 let rec string_of_lterme lt =
     match lt with
@@ -23,6 +26,9 @@ let rec string_of_lterme lt =
         | Head lt_l -> "(head " ^ string_of_lterme lt_l ^ ")"
         | Tail lt_l -> "(tail " ^ string_of_lterme lt_l ^ ")"
         | Cons (elt,lt_l) -> "(cons " ^ string_of_lterme elt ^ " " ^ string_of_lterme lt_l ^ ")"
+        | IfZte (cond,conseq,alt) -> "(if_zero " ^ string_of_lterme cond ^ " then " ^ string_of_lterme conseq ^ " else " ^ string_of_lterme alt^ ")"
+        | IfEte (cond,conseq,alt) -> "(if_empty " ^ string_of_lterme cond ^ " then " ^ string_of_lterme conseq ^ " else " ^ string_of_lterme alt^ ")"
+        | Fix f -> "(fix " ^ string_of_lterme f ^ ")"
 
 let pp_lterme lt = Printf.fprintf stdout "%s" (string_of_lterme lt);;
 
@@ -45,6 +51,12 @@ let create_head lt_l = Head lt_l;;
 let create_tail lt_l = Tail lt_l;;
 
 let create_cons elt lt_l = Cons (elt, lt_l);;
+
+let create_ifZte cond conseq alt = IfZte (cond,conseq,alt);;
+
+let create_ifEte cond conseq alt = IfEte (cond,conseq,alt);;
+
+let create_fix f = Fix f;;
 
 let fresh_var, reset_gen =
     let char_gen = ref 'a'
@@ -93,6 +105,9 @@ let barendregt lt =
             | Head lt_l -> create_head (barendregt_rec lt_l rename var_globs)
             | Tail lt_l -> create_tail (barendregt_rec lt_l rename var_globs)
             | Cons (elt,lt_l) -> create_cons (barendregt_rec elt rename var_globs) (barendregt_rec lt_l rename var_globs)
+            | IfZte (cond,conseq,alt) -> create_ifZte (barendregt_rec cond rename var_globs) (barendregt_rec conseq rename var_globs) (barendregt_rec alt rename var_globs)
+            | IfEte (cond,conseq,alt) -> create_ifEte (barendregt_rec cond rename var_globs) (barendregt_rec conseq rename var_globs) (barendregt_rec alt rename var_globs)
+            | Fix lt -> create_fix (barendregt_rec lt rename var_globs) 
             | x -> x
     and variables_globals lt var_libres =
             match lt with
@@ -113,25 +128,32 @@ let barendregt lt =
                 | Head lt_l -> (variables_globals lt_l var_libres)
                 | Tail lt_l -> (variables_globals lt_l var_libres)
                 | Cons (elt,lt_l) -> StringSet.union (variables_globals elt var_libres) (variables_globals lt_l var_libres)
+                | IfZte (cond,conseq,alt) -> StringSet.union (StringSet.union (variables_globals cond var_libres) (variables_globals conseq var_libres)) (variables_globals alt var_libres)
+                | IfEte (cond,conseq,alt) -> StringSet.union (StringSet.union (variables_globals cond var_libres) (variables_globals conseq var_libres)) (variables_globals alt var_libres)
+                | Fix f -> (variables_globals f var_libres)
                 | _ -> var_libres
     in
         let var_globs = variables_globals lt StringSet.empty
         in
             barendregt_rec lt StringMap.empty var_globs;;
 
-(* (λx.(cons (λx.x) (cons (head x) (tail x)))) [1]*)
+(* (fix (λsum.λx.if_zero x then 0 else ((sum (x-1))+ x))) 4 *)
 let lambda_ex = 
     create_app
-        (create_abs "x"
-            (create_cons 
+        (create_fix
+            (create_abs "sum"
                 (create_abs "x"
-                    (create_var "x"))
-                (create_cons
-                    (create_head
-                        (create_var "x"))
-                    (create_tail
-                        (create_var "x")))))
-        (create_liste [create_int 1])
+                    (create_ifZte
+                        (create_var "x")
+                        (create_int 0)
+                        (create_add
+                            (create_app
+                                (create_var "sum")
+                                (create_sub
+                                    (create_var "x")
+                                    (create_int 1)))
+                            (create_var "x"))))))
+        (create_int 100);;
 
 let rec instantie lt varname rempl =
     match lt with
@@ -152,6 +174,9 @@ let rec instantie lt varname rempl =
         | Head lt_l -> create_head (instantie lt_l varname rempl)
         | Tail lt_l -> create_tail (instantie lt_l varname rempl)
         | Cons (elt,lt_l) -> create_cons (instantie elt varname rempl) (instantie lt_l varname rempl)
+        | IfZte (cond,conseq,alt) -> create_ifZte (instantie cond varname rempl) (instantie conseq varname rempl) (instantie alt varname rempl)
+        | IfEte (cond,conseq,alt) -> create_ifEte (instantie cond varname rempl) (instantie conseq varname rempl) (instantie alt varname rempl)
+        | Fix f -> create_fix (instantie f varname rempl)
         | x -> x;;
 
 (* ((λx.(λy.(x y))) (λy.(y z))) x *)
@@ -245,6 +270,28 @@ let rec ltrcbv_etape lt =
                     (match eval_liste with
                         Liste lt_l -> create_liste (eval_elt::lt_l)
                         | _ -> raise (Evaluation_exc "Argument of 'tail' is not list"))
+            | IfZte (cond,conseq,alt) ->
+                let eval_cond = evaluate cond
+                in
+                    (match eval_cond with
+                        Int i -> if i=0
+                                 then ltrcbv_etape conseq
+                                 else ltrcbv_etape alt
+                        | _ -> raise (Evaluation_exc "Condition is not int"))
+            | IfEte (cond,conseq,alt) ->
+                let eval_cond = evaluate cond
+                in
+                    (match eval_cond with
+                        Liste lt_l -> if lt_l=[]
+                                      then ltrcbv_etape conseq
+                                      else ltrcbv_etape alt
+                        | _ -> raise (Evaluation_exc "Condition is not list"))
+            | Fix f ->
+                let eval_f = evaluate f
+                in
+                    (match eval_f with
+                        Abstraction (var,corps) -> instantie corps var (create_fix eval_f)
+                        | _ -> raise (Evaluation_exc "Fix couldn't be applied on this terme"))
             | x -> x;;
 
 (* (λx.x x x) (λx.x x x) *)

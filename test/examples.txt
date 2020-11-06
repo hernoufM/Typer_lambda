@@ -40,3 +40,61 @@ let lambda_ex =
                             (create_var "y")))))
             (create_int 7))
         (create_int 5);;
+
+(*  Head Tail Cons
+    (λx.(cons (λx.x) (cons (head x) (tail x)))) [1]*)
+let lambda_ex = 
+    create_app
+        (create_abs "x"
+            (create_cons 
+                (create_abs "x"
+                    (create_var "x"))
+                (create_cons
+                    (create_head
+                        (create_var "x"))
+                    (create_tail
+                        (create_var "x")))))
+        (create_liste [create_int 1])
+
+(*  if_zero then else
+    (if_zero ((λx.x 1) - 1) then 5 else (head [])) *)
+let lambda_ex = 
+    create_ifZte
+        (create_sub
+            (create_app
+                (create_abs "x"
+                    (create_var "x"))
+                (create_int 1))
+            (create_int 1))
+        (create_int 5)
+        (create_head
+            (create_liste []))
+
+(*  if_empty then else
+    (if_empty (tail [1]) then 5 else (head [])) *)
+let lambda_ex = 
+    create_ifEte
+        (create_tail
+            (create_liste [create_int 1]))
+        (create_int 5)
+        (create_head
+            (create_liste []))
+
+(*  Fix (sum of first 100 )
+    (fix (λsum.λx.if_zero x then 0 else ((sum (x-1))+ x))) 100 *)
+let lambda_ex = 
+    create_app
+        (create_fix
+            (create_abs "sum"
+                (create_abs "x"
+                    (create_ifZte
+                        (create_var "x")
+                        (create_int 0)
+                        (create_add
+                            (create_app
+                                (create_var "sum")
+                                (create_sub
+                                    (create_var "x")
+                                    (create_int 1)))
+                            (create_var "x"))))))
+        (create_int 100);;
