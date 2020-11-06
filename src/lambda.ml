@@ -1,13 +1,15 @@
 type lambda_terme = 
     Var of string
     | Abstraction of string * lambda_terme 
-    | Application of lambda_terme  * lambda_terme 
+    | Application of lambda_terme  * lambda_terme
+    | Int of int;;
 
 let rec string_of_lterme lt =
     match lt with
-        Var(name) -> name
+        Var name -> name
         | Abstraction(varname,corps) -> "(λ" ^ varname ^ "." ^ string_of_lterme corps ^ ")"
-        | Application(left, right) -> "(" ^ string_of_lterme left ^ " " ^ string_of_lterme right ^ ")";;
+        | Application(left, right) -> "(" ^ string_of_lterme left ^ " " ^ string_of_lterme right ^ ")"
+        | Int i -> string_of_int i;;
 
 let pp_lterme lt = Printf.fprintf stdout "%s" (string_of_lterme lt);;
 
@@ -16,6 +18,8 @@ let create_var name = Var name;;
 let create_abs var corps = Abstraction (var, corps);;
 
 let create_app left right = Application (left,right);;
+
+let create_int i = Int i;;
 
 let fresh_var, reset_gen =
     let char_gen = ref 'a'
@@ -52,36 +56,32 @@ let barendregt lt =
                     create_abs !new_varname (barendregt_rec lt (StringMap.add varname !new_varname rename) var_globs))
             | Application(lt1, lt2) -> 
                 create_app (barendregt_rec lt1 rename var_globs) (barendregt_rec lt2 rename var_globs)
+            | x -> x
     and variables_globals lt var_libres =
             match lt with
                 Var(name) -> 
                     if StringSet.mem name var_libres
                     then StringSet.empty
                     else StringSet.singleton name
-            | Abstraction(varname,corps) -> 
-                variables_globals corps (StringSet.add varname var_libres)
-            | Application(lt1, lt2) -> 
-                StringSet.union (variables_globals lt1 var_libres) (variables_globals lt2 var_libres)
+                | Abstraction(varname,corps) -> 
+                    variables_globals corps (StringSet.add varname var_libres)
+                | Application(lt1, lt2) -> 
+                    StringSet.union (variables_globals lt1 var_libres) (variables_globals lt2 var_libres)
+                | _ -> var_libres
     in
         let var_globs = variables_globals lt StringSet.empty
         in
             barendregt_rec lt StringMap.empty var_globs;;
 
-(* λx.((λx.λy.x y) (λy.y z)) x *)
+(* (λx.λy.x) 5 z *)
 let lambda_ex = 
-    create_abs "x" 
-        (create_app 
-            (create_app 
-                (create_abs "x" 
-                    (create_abs "y" 
-                        (create_app 
-                            (create_var "x") 
-                            (create_var "y")))) 
-                (create_abs "y" 
-                    (create_app 
-                        (create_var "y") 
-                        (create_var "z")))) 
-            (create_var "x"));;
+    create_app
+        (create_app
+            (create_abs "x"
+                (create_abs "y"
+                    (create_var "x")))
+            (create_int 5))
+        (create_var "z");;
 
 let rec instantie lt varname rempl =
     match lt with
@@ -93,9 +93,22 @@ let rec instantie lt varname rempl =
             create_abs name (instantie lt varname rempl)
         | Application(lt1, lt2) ->
             create_app (instantie lt1 varname rempl) (instantie lt2 varname rempl)
+        | x -> x;;
 
 (* ((λx.(λy.(x y))) (λy.(y z))) x *)
-let lambda_ex2 = create_app (create_app (create_abs "x" (create_abs "y" (create_app (create_var "x") (create_var "y")))) (create_abs "y" (create_app (create_var "y") (create_var "z")))) (create_var "x");;
+let lambda_ex2 = 
+    create_app 
+        (create_app 
+            (create_abs "x" 
+                (create_abs "y" 
+                    (create_app 
+                        (create_var "x") 
+                        (create_var "y")))) 
+            (create_abs "y" 
+                (create_app 
+                    (create_var "y") 
+                    (create_var "z")))) 
+        (create_var "x");;
 
 let rec ltrcbv_etape lt =
     match lt with
@@ -138,6 +151,7 @@ let reduce_lambda lt =
                 | Var _ -> true
                 | Abstraction _ -> true
                 | Application(func, argument) -> (isReduced func) && (isReduced argument)
+                | _ -> true 
         in
             while not (isReduced !lambda) && (Unix.time ()) -. start_time < 0.1 do
                 lambda := ltrcbv_etape !lambda;
