@@ -12,6 +12,7 @@ type lambda_terme =
     | IfZte of lambda_terme * lambda_terme * lambda_terme
     | IfEte of lambda_terme * lambda_terme * lambda_terme
     | Fix of lambda_terme
+    | Let of string * lambda_terme * lambda_terme;;
 
 let rec string_of_lterme lt =
     match lt with
@@ -29,6 +30,7 @@ let rec string_of_lterme lt =
         | IfZte (cond,conseq,alt) -> "(if_zero " ^ string_of_lterme cond ^ " then " ^ string_of_lterme conseq ^ " else " ^ string_of_lterme alt^ ")"
         | IfEte (cond,conseq,alt) -> "(if_empty " ^ string_of_lterme cond ^ " then " ^ string_of_lterme conseq ^ " else " ^ string_of_lterme alt^ ")"
         | Fix f -> "(fix " ^ string_of_lterme f ^ ")"
+        | Let (var,expr,corps) -> "(let " ^ var ^ " = " ^ string_of_lterme expr ^ " in " ^ string_of_lterme corps ^ ")"
 
 let pp_lterme lt = Printf.fprintf stdout "%s" (string_of_lterme lt);;
 
@@ -57,6 +59,8 @@ let create_ifZte cond conseq alt = IfZte (cond,conseq,alt);;
 let create_ifEte cond conseq alt = IfEte (cond,conseq,alt);;
 
 let create_fix f = Fix f;;
+
+let create_let varname expr corps = Let (varname,expr,corps);;
 
 let fresh_var, reset_gen =
     let char_gen = ref 'a'
@@ -108,6 +112,7 @@ let barendregt lt =
             | IfZte (cond,conseq,alt) -> create_ifZte (barendregt_rec cond rename var_globs) (barendregt_rec conseq rename var_globs) (barendregt_rec alt rename var_globs)
             | IfEte (cond,conseq,alt) -> create_ifEte (barendregt_rec cond rename var_globs) (barendregt_rec conseq rename var_globs) (barendregt_rec alt rename var_globs)
             | Fix lt -> create_fix (barendregt_rec lt rename var_globs) 
+            | Let (var,expr, corps) -> create_let var (barendregt_rec expr rename var_globs)  (barendregt_rec corps rename var_globs) 
             | x -> x
     and variables_globals lt var_libres =
             match lt with
@@ -131,29 +136,25 @@ let barendregt lt =
                 | IfZte (cond,conseq,alt) -> StringSet.union (StringSet.union (variables_globals cond var_libres) (variables_globals conseq var_libres)) (variables_globals alt var_libres)
                 | IfEte (cond,conseq,alt) -> StringSet.union (StringSet.union (variables_globals cond var_libres) (variables_globals conseq var_libres)) (variables_globals alt var_libres)
                 | Fix f -> (variables_globals f var_libres)
+                | Let (_,expr,corps) -> StringSet.union (variables_globals expr var_libres) (variables_globals corps var_libres)
                 | _ -> var_libres
     in
         let var_globs = variables_globals lt StringSet.empty
         in
             barendregt_rec lt StringMap.empty var_globs;;
 
-(* (fix (λsum.λx.if_zero x then 0 else ((sum (x-1))+ x))) 4 *)
+(* let x = (head [4]) in (λx.(x+x)) x *)
 let lambda_ex = 
-    create_app
-        (create_fix
-            (create_abs "sum"
-                (create_abs "x"
-                    (create_ifZte
-                        (create_var "x")
-                        (create_int 0)
-                        (create_add
-                            (create_app
-                                (create_var "sum")
-                                (create_sub
-                                    (create_var "x")
-                                    (create_int 1)))
-                            (create_var "x"))))))
-        (create_int 100);;
+    create_let "x"
+        (create_head
+            (create_liste
+                [create_int 4]))
+        (create_app
+            (create_abs "x"
+                (create_add
+                    (create_var "x")
+                    (create_var "x")))
+            (create_var "x"))
 
 let rec instantie lt varname rempl =
     match lt with
@@ -177,6 +178,10 @@ let rec instantie lt varname rempl =
         | IfZte (cond,conseq,alt) -> create_ifZte (instantie cond varname rempl) (instantie conseq varname rempl) (instantie alt varname rempl)
         | IfEte (cond,conseq,alt) -> create_ifEte (instantie cond varname rempl) (instantie conseq varname rempl) (instantie alt varname rempl)
         | Fix f -> create_fix (instantie f varname rempl)
+        | Let (var,expr,corps) ->
+            if var=varname
+            then lt
+            else create_let var (instantie expr varname rempl) (instantie corps varname rempl)
         | x -> x;;
 
 (* ((λx.(λy.(x y))) (λy.(y z))) x *)
@@ -292,6 +297,10 @@ let rec ltrcbv_etape lt =
                     (match eval_f with
                         Abstraction (var,corps) -> instantie corps var (create_fix eval_f)
                         | _ -> raise (Evaluation_exc "Fix couldn't be applied on this terme"))
+            | Let (varname,expr,corps) ->
+                let eval_expr = evaluate expr
+                in
+                    ltrcbv_etape (instantie corps varname eval_expr) 
             | x -> x;;
 
 (* (λx.x x x) (λx.x x x) *)
@@ -316,8 +325,6 @@ let reduce_lambda lt =
     in
         while not (isReduced !lambda) && (Unix.time ()) -. start_time < 0.1 do
             lambda := ltrcbv_etape !lambda;
-            pp_lterme !lambda;
-            print_newline ();
             reset_gen ();
         done;
         print_newline();

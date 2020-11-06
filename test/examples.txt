@@ -98,3 +98,17 @@ let lambda_ex =
                                     (create_int 1)))
                             (create_var "x"))))))
         (create_int 100);;
+
+(*  Let 
+    let x = (head [4]) in (λx.(x+x)) x *)
+let lambda_ex = 
+    create_let "x"
+        (create_head
+            (create_liste
+                [create_int 4]))
+        (create_app
+            (create_abs "x"
+                (create_add
+                    (create_var "x")
+                    (create_var "x")))
+            (create_var "x"))
