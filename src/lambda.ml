@@ -4,7 +4,11 @@ type lambda_terme =
     | Application of lambda_terme  * lambda_terme
     | Int of int
     | Add of lambda_terme * lambda_terme
-    | Sub of lambda_terme * lambda_terme;;
+    | Sub of lambda_terme * lambda_terme
+    | Liste of lambda_terme list
+    | Head of lambda_terme
+    | Tail of lambda_terme
+    | Cons of lambda_terme * lambda_terme
 
 let rec string_of_lterme lt =
     match lt with
@@ -13,7 +17,12 @@ let rec string_of_lterme lt =
         | Application(left, right) -> "(" ^ string_of_lterme left ^ " " ^ string_of_lterme right ^ ")"
         | Int i -> string_of_int i
         | Add (a,b) -> "(" ^ string_of_lterme a ^ " + " ^ string_of_lterme b ^ ")"
-        | Sub (a,b) -> "(" ^ string_of_lterme a ^ " - " ^ string_of_lterme b ^ ")";;
+        | Sub (a,b) -> "(" ^ string_of_lterme a ^ " - " ^ string_of_lterme b ^ ")"
+        | Liste lt_list ->
+            "[" ^ String.concat ", " (List.map string_of_lterme lt_list) ^ "]"
+        | Head lt_l -> "(head " ^ string_of_lterme lt_l ^ ")"
+        | Tail lt_l -> "(tail " ^ string_of_lterme lt_l ^ ")"
+        | Cons (elt,lt_l) -> "(cons " ^ string_of_lterme elt ^ " " ^ string_of_lterme lt_l ^ ")"
 
 let pp_lterme lt = Printf.fprintf stdout "%s" (string_of_lterme lt);;
 
@@ -28,6 +37,14 @@ let create_int i = Int i;;
 let create_add a b = Add (a, b);;
 
 let create_sub a b = Sub (a, b);;
+
+let create_liste lt_l = Liste lt_l;;
+
+let create_head lt_l = Head lt_l;;
+
+let create_tail lt_l = Tail lt_l;;
+
+let create_cons elt lt_l = Cons (elt, lt_l);;
 
 let fresh_var, reset_gen =
     let char_gen = ref 'a'
@@ -66,6 +83,16 @@ let barendregt lt =
                 create_app (barendregt_rec lt1 rename var_globs) (barendregt_rec lt2 rename var_globs)
             | Add (a,b) -> create_add (barendregt_rec a rename var_globs) (barendregt_rec b rename var_globs)
             | Sub (a,b) -> create_sub (barendregt_rec a rename var_globs) (barendregt_rec b rename var_globs)
+            | Liste lt_l -> 
+                let evaluate_liste = 
+                    List.map
+                        (function x -> (barendregt_rec x rename var_globs))
+                        lt_l
+                in
+                    create_liste evaluate_liste
+            | Head lt_l -> create_head (barendregt_rec lt_l rename var_globs)
+            | Tail lt_l -> create_tail (barendregt_rec lt_l rename var_globs)
+            | Cons (elt,lt_l) -> create_cons (barendregt_rec elt rename var_globs) (barendregt_rec lt_l rename var_globs)
             | x -> x
     and variables_globals lt var_libres =
             match lt with
@@ -81,35 +108,30 @@ let barendregt lt =
                     StringSet.union (variables_globals a var_libres) (variables_globals b var_libres)
                 | Sub (a,b) ->
                     StringSet.union (variables_globals a var_libres) (variables_globals b var_libres)
+                | Liste lt_l ->
+                    List.fold_right variables_globals lt_l var_libres
+                | Head lt_l -> (variables_globals lt_l var_libres)
+                | Tail lt_l -> (variables_globals lt_l var_libres)
+                | Cons (elt,lt_l) -> StringSet.union (variables_globals elt var_libres) (variables_globals lt_l var_libres)
                 | _ -> var_libres
     in
         let var_globs = variables_globals lt StringSet.empty
         in
             barendregt_rec lt StringMap.empty var_globs;;
 
-(* (λx.λy.(((λx.λy.x) x y) + (λx.λy.y) x y) ) 5 7 *)
+(* (λx.(cons (λx.x) (cons (head x) (tail x)))) [1]*)
 let lambda_ex = 
     create_app
-        (create_app
-            (create_abs "x"
-                (create_abs "y"
-                    (create_sub
-                        (create_app
-                            (create_app
-                                (create_abs "x"
-                                    (create_abs "y"
-                                        (create_var "x")))
-                                (create_var "x"))
-                            (create_var "y"))
-                        (create_app
-                            (create_app
-                                (create_abs "x"
-                                    (create_abs "y"
-                                        (create_var "y")))
-                                (create_var "x"))
-                            (create_var "y")))))
-            (create_int 7))
-        (create_int 5);;
+        (create_abs "x"
+            (create_cons 
+                (create_abs "x"
+                    (create_var "x"))
+                (create_cons
+                    (create_head
+                        (create_var "x"))
+                    (create_tail
+                        (create_var "x")))))
+        (create_liste [create_int 1])
 
 let rec instantie lt varname rempl =
     match lt with
@@ -117,12 +139,19 @@ let rec instantie lt varname rempl =
             if name = varname 
             then rempl
             else lt
-        | Abstraction(name,lt) ->
-            create_abs name (instantie lt varname rempl)
+        | Abstraction(var,corps) ->
+            if var = varname
+            then lt
+            else create_abs var (instantie corps varname rempl)
         | Application(lt1, lt2) ->
             create_app (instantie lt1 varname rempl) (instantie lt2 varname rempl)
         | Add (a,b) -> create_add (instantie a varname rempl) (instantie b varname rempl)
         | Sub (a,b) -> create_sub (instantie a varname rempl) (instantie b varname rempl)
+        | Liste lt_l ->
+            create_liste (List.map (function x -> instantie x varname rempl) lt_l)
+        | Head lt_l -> create_head (instantie lt_l varname rempl)
+        | Tail lt_l -> create_tail (instantie lt_l varname rempl)
+        | Cons (elt,lt_l) -> create_cons (instantie elt varname rempl) (instantie lt_l varname rempl)
         | x -> x;;
 
 (* ((λx.(λy.(x y))) (λy.(y z))) x *)
@@ -147,10 +176,10 @@ let rec isReduced lt =
         Application(Abstraction(_,_), _) -> false
         | Var _ -> true
         | Abstraction _ -> true
+        | Int _ -> true
         | Application(func, argument) -> (isReduced func) && (isReduced argument)
-        | Add _ -> false
-        | Sub _ -> false
-        | _ -> true;; 
+        | Liste lt_l -> List.for_all isReduced lt_l
+        | _ -> false;; 
 
 let rec ltrcbv_etape lt =
     let evaluate lt =
@@ -184,14 +213,38 @@ let rec ltrcbv_etape lt =
                 in
                     (match eval_a,eval_b with
                         Int a, Int b -> Int (a+b)
-                        | _ -> raise (Evaluation_exc "Argument of add is not int"))
+                        | _ -> raise (Evaluation_exc "Argument of '+' is not int"))
             | Sub (a,b) ->
                 let eval_a = evaluate a
                 and eval_b = evaluate b
                 in
                     (match eval_a,eval_b with
                         Int a, Int b -> Int (a-b)
-                        | _ -> raise (Evaluation_exc "Argument of subb is not int"))
+                        | _ -> raise (Evaluation_exc "Argument of '-' is not int"))
+            | Liste lt_l -> create_liste (List.map evaluate lt_l)
+            | Head lt_l ->
+                let eval_liste = evaluate lt_l
+                in
+                    (match eval_liste with
+                        Liste lt_l -> if lt_l = []
+                                      then raise (Evaluation_exc "Argument of 'head' is empty list")
+                                      else List.hd lt_l
+                        | _ -> raise (Evaluation_exc "Argument of 'head' is not list"))
+            | Tail lt_l ->
+                let eval_liste = evaluate lt_l
+                in
+                    (match eval_liste with
+                        Liste lt_l -> if lt_l = []
+                                      then raise (Evaluation_exc "Argument of 'tail' is empty list")
+                                      else create_liste (List.tl lt_l)
+                        | _ -> raise (Evaluation_exc "Argument of 'tail' is not list"))
+            | Cons (elt,lt_l) ->
+                let eval_elt = ltrcbv_etape elt
+                and eval_liste = evaluate lt_l
+                in
+                    (match eval_liste with
+                        Liste lt_l -> create_liste (eval_elt::lt_l)
+                        | _ -> raise (Evaluation_exc "Argument of 'tail' is not list"))
             | x -> x;;
 
 (* (λx.x x x) (λx.x x x) *)
