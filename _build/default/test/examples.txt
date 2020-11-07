@@ -17,7 +17,7 @@ let lambda_ex =
         (create_int 3)
 
 (* Add/Sub
-    (λx.λy.(((λx.λy.x) x y) + (λx.λy.y) x y) ) 7 5 *)
+    (λx.λy.(((λx.λy.x) x y) - (λx.λy.y) x y) ) 7 5 *)
 let lambda_ex = 
     create_app
         (create_app
@@ -112,29 +112,3 @@ let lambda_ex =
                     (create_var "x")
                     (create_var "x")))
             (create_var "x"))
-
-(* λxyzt.((x (y t)) t) (z t) *)
-let lambda_ex3 = 
-    create_abs "x" 
-        (create_abs "y" 
-            (create_abs "z"
-                (create_abs "t"
-                    (create_app
-                        (create_app
-                            (create_app 
-                                (create_var "x")
-                                (create_app
-                                    (create_var "y")
-                                    (create_var "t")))
-                            (create_var "t"))
-                        (create_app
-                            (create_var "z")
-                            (create_var "t"))))));;
-
-(* [i, i i, i i i, k i s] *)
-let lambda_ex3 = 
-    create_liste
-        [i;
-        (create_app i (create_int 5));
-        (create_app (create_app i i) i);
-        (create_app (create_app k i) (create_int 5))];;

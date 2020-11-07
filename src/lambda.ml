@@ -143,18 +143,23 @@ let barendregt lt =
         in
             barendregt_rec lt StringMap.empty var_globs;;
 
-(* let x = (head [4]) in (λx.(x+x)) x *)
+(* Liste
+    (λx.[(0+x),(0-x),(λx.x) x]) 3*)
 let lambda_ex = 
-    create_let "x"
-        (create_head
+    create_app
+        (create_abs "x"
             (create_liste
-                [create_int 4]))
-        (create_app
-            (create_abs "x"
-                (create_add
-                    (create_var "x")
-                    (create_var "x")))
-            (create_var "x"))
+                [create_add
+                    (create_int 0)
+                    (create_var "x");
+                create_sub
+                    (create_int 0)
+                    (create_var "x");
+                create_app
+                    (create_abs "x"
+                        (create_var "x"))
+                    (create_var "x")]))
+        (create_int 3)
 
 let rec instantie lt varname rempl =
     match lt with

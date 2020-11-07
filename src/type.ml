@@ -2,16 +2,30 @@ open Lambda;;
 
 type lambda_type = 
     VarT of string
-    | ArrowT of lambda_type * lambda_type;;
+    | ArrowT of lambda_type * lambda_type
+    | Nat
+    | ListeT of lambda_type;;
+    (*| Forall of string list * lambda_type*)
 
-let rec pp_ltype t =
+let rec string_of_ltype t =
     match t with
-        VarT name -> Printf.printf "%s" name
-        | ArrowT (ta,tr) -> Printf.printf "("; pp_ltype ta; Printf.printf " -> "; pp_ltype tr; Printf.printf ")";; 
+        VarT name -> name
+        | ArrowT (ta,tr) -> "(" ^ string_of_ltype ta ^ " -> " ^ string_of_ltype tr ^")"
+        | Nat -> "Nat"
+        | ListeT lt -> "["^string_of_ltype lt^"]";;
+        (*| Forall (variables, lt) -> "∀" ^ (String.concat "," variables) ^ "." ^ string_of_ltype lt*)
+
+let pp_ltype t = Printf.fprintf stdout "%s" (string_of_ltype t);;
 
 let create_var_t name = VarT name;;
 
 let create_arrow_t ta tr = ArrowT (ta, tr);;
+
+let create_nat = Nat;;
+
+let create_liste_t lt = ListeT lt;;
+
+(*let create_forall vars lt = Forall (vars,lt);;*)
 
 let fresh_var_t, reset_gen_t =
     let num_gen = ref 0
@@ -27,6 +41,8 @@ let rec stype_egal t1 t2 =
     match t1,t2 with
         (VarT name1, VarT name2) -> name1=name2
         | (ArrowT (ta1,tr1), ArrowT(ta2,tr2)) -> stype_egal ta1 ta2 && stype_egal tr1 tr2
+        | Nat, Nat -> true
+        | ListeT t1, ListeT t2 -> stype_egal t1 t2
         | _ -> false;;
 
 type equation = lambda_type * lambda_type;;
@@ -52,6 +68,26 @@ let gen_equas lt : equation list =
                         let list_d = (gen_equas_rec env param vart_arg)
                         in 
                             list_g @ list_d
+            | Int _ -> [(typ, Nat)]
+            | Add (a,b) -> 
+                let list_a = gen_equas_rec env a Nat
+                in
+                    let list_b = gen_equas_rec env b Nat
+                    in
+                        (typ,Nat)::(list_a @ list_b)
+            | Sub (a,b) ->
+                let list_a = gen_equas_rec env a Nat
+                in
+                    let list_b = gen_equas_rec env b Nat
+                    in
+                        (typ,Nat)::(list_a @ list_b)
+            | Liste lt_l ->
+                let vart_elt = create_var_t (fresh_var_t ())
+                in
+
+                    (typ, ListeT vart_elt)::(List.concat (List.map (function elt -> gen_equas_rec env elt vart_elt) lt_l))
+            | _ -> raise Variable_global_exc
+
     in
         reset_gen_t ();
         try 
@@ -75,7 +111,9 @@ let rec pp_equation_list equat_list =
 let rec occur_check varname typ = 
     match typ with
         VarT name -> name = varname
-        | ArrowT (typ_arg, typ_res) -> (occur_check varname typ_arg) || (occur_check varname typ_res);;
+        | ArrowT (typ_arg, typ_res) -> (occur_check varname typ_arg) || (occur_check varname typ_res)
+        | Nat -> false
+        | ListeT typ_elt -> occur_check varname typ_elt;;
 
 let rec substitue varname typ_rename typ =
     match typ with
@@ -84,7 +122,9 @@ let rec substitue varname typ_rename typ =
             then typ_rename
             else typ
         | ArrowT (typ_arg,typ_res) ->
-            create_arrow_t (substitue varname typ_rename typ_arg) (substitue varname typ_rename typ_res);;
+            create_arrow_t (substitue varname typ_rename typ_arg) (substitue varname typ_rename typ_res)
+        | Nat -> Nat
+        | ListeT typ_elt -> create_liste_t (substitue varname typ_rename typ_elt);;
 
 let rec substitue_partout varname typ_rename equations : equation list=
     match equations with
@@ -108,23 +148,48 @@ let s = create_abs "x"
                             (create_var "y")
                             (create_var "z")))));;
 
-(* λxyzt.((x (y t)) t) (z t) *)
+(* [i, i i, i i i, k i s] *)
 let lambda_ex3 = 
-    create_abs "x" 
-        (create_abs "y" 
-            (create_abs "z"
-                (create_abs "t"
+    create_liste
+        [i;
+        (create_app i (create_int 5));
+        (create_app (create_app i i) i);
+        (create_app (create_app k i) (create_int 5))];;
+
+let deux = 
+    create_abs "f"
+        (create_abs "x"
+            (create_app
+                (create_var "f")
+                (create_app 
+                    (create_var "f")
+                    (create_var "x"))));;
+
+let trois = 
+    create_abs "f"
+        (create_abs "x"
+            (create_app
+                (create_var "f")
+                (create_app 
+                    (create_var "f")
+                    (create_app 
+                        (create_var "f")
+                        (create_var "x")))));;             
+
+let puiss =
+    create_abs "n"
+        (create_abs "m"
+            (create_abs "f"
+                (create_abs "e"
                     (create_app
-                        (create_app
-                            (create_app 
-                                (create_var "x")
-                                (create_app
-                                    (create_var "y")
-                                    (create_var "t")))
-                            (create_var "t"))
-                        (create_app
-                            (create_var "z")
-                            (create_var "t"))))));;
+                        (create_app 
+                            (create_app
+                                (create_var "n")
+                                (create_var "m"))
+                            (create_var "f"))
+                        (create_var "e")))));;
+
+let puiss_ex = create_app (create_app puiss trois) deux;;
 
 let unification_etape equations : equation list=
     let rec unification_etape_rec equations res =
@@ -148,6 +213,7 @@ let unification_etape equations : equation list=
                 else raise No_soltuions_equations
             | (ArrowT (typ_arg1,typ_res1),ArrowT (typ_arg2,typ_res2))::equats ->
                 unification_etape_rec  equats ((typ_arg1,typ_arg2)::(typ_res1,typ_res2)::res)
+            | _ -> raise No_soltuions_equations
     in
         unification_etape_rec equations [];;
 
@@ -176,6 +242,8 @@ let rename_grec typ =
                             rename:=StringMap.add varname new_var !rename;
                             new_var)
             | ArrowT (typ1,typ2) -> create_arrow_t (rename_grec_rec typ1 rename) (rename_grec_rec typ2 rename)
+            | Nat -> Nat
+            | ListeT typ_elt -> create_liste_t (rename_grec_rec typ_elt rename)
     in
         rename_grec_rec typ (ref StringMap.empty);;    
 
@@ -189,9 +257,12 @@ let typeur lt =
                 | _ -> None 
         in
             reset_gen_grec();
+            pp_equation_list !equations;
             while get_type_from_equations !equations = None 
                   && (Unix.time ()) -. start_time < 0.1 do
-                equations := unification_etape !equations
+                equations := unification_etape !equations;
+                pp_equation_list !equations;
+                print_newline ();
             done;
             print_newline ();
             match get_type_from_equations !equations with
