@@ -42,13 +42,15 @@ let lambda_ex =
         (create_int 5);;
 
 (*  Head Tail Cons
-    (λx.(cons (λx.x) (cons (head x) (tail x)))) [1]*)
+    (λx.(cons ((λx.x) 3) (cons (head x) (tail x)))) [1]*)
 let lambda_ex = 
     create_app
         (create_abs "x"
             (create_cons 
-                (create_abs "x"
-                    (create_var "x"))
+                (create_app
+                    (create_abs "x"
+                        (create_var "x"))
+                    (create_int 3))
                 (create_cons
                     (create_head
                         (create_var "x"))
@@ -56,7 +58,7 @@ let lambda_ex =
                         (create_var "x")))))
         (create_liste [create_int 1])
 
-(*  if_zero then else
+(*  if_zero then else           OK
     (if_zero ((λx.x 1) - 1) then 5 else (head [])) *)
 let lambda_ex = 
     create_ifZte
@@ -69,6 +71,20 @@ let lambda_ex =
         (create_int 5)
         (create_head
             (create_liste []))
+
+(*  if_zero then else           KO
+    (if_zero ((λx.x 1) - 1) then 5 else (head [])) *)
+let lambda_ex = 
+    create_ifZte
+        (create_sub
+            (create_app
+                (create_abs "x"
+                    (create_var "x"))
+                (create_int 1))
+            (create_int 1))
+        (create_int 5)
+        (create_head
+            (create_liste [create_abs "x" (create_var "x")]))
 
 (*  if_empty then else
     (if_empty (tail [1]) then 5 else (head [])) *)
@@ -99,7 +115,7 @@ let lambda_ex =
                             (create_var "x"))))))
         (create_int 100);;
 
-(*  Let 
+(*  Let     1
     let x = (head [4]) in (λx.(x+x)) x *)
 let lambda_ex = 
     create_let "x"
@@ -112,6 +128,35 @@ let lambda_ex =
                     (create_var "x")
                     (create_var "x")))
             (create_var "x"))
+
+(*  Let     2
+    let f = (λx.x) in (f f) 3 *)
+let lambda_ex = 
+    create_let "x"
+        (create_abs "x"
+            (create_var "x"))
+        (create_app
+            (create_app 
+                (create_var "f")
+                (create_var "f"))
+            (create_int 3));;
+
+(*  Let     3
+    let add = (λx.λy.x+y) in let add_3 = add 3 in add_3 5 *)
+let lambda_ex = 
+    create_let "add"
+        (create_abs "x"
+            (create_abs "y"
+                (create_add
+                    (create_var "x")
+                    (create_var "y"))))
+        (create_let "add_3"
+            (create_app
+                (create_var "add")
+                (create_int 3))
+            (create_app
+                (create_var "add_3")
+                (create_int 5)));;
 
 (* λxyzt.((x (y t)) t) (z t) *)
 let lambda_ex3 = 
