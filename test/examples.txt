@@ -158,6 +158,37 @@ let lambda_ex =
                 (create_var "add_3")
                 (create_int 5)));;
 
+(* Ref/Deref/Assign/Unit   
+   let x = ref 2 in let y = ref 5 in let _ = x:=!x+8 in let _ = y=!y+2 in !x-!y;
+   *)
+let lambda_ex =
+    create_let "x"
+        (create_ref
+            (create_int 2))
+        (create_let "y"
+            (create_ref
+                (create_int 5))
+            (create_let "_"
+                (create_assign
+                    (create_var "x")
+                    (create_add
+                        (create_deref
+                            (create_var "x"))
+                        (create_int 8)))
+                (create_let "_"
+                    (create_assign
+                        (create_var "y")
+                        (create_add
+                            (create_deref
+                                (create_var "y"))
+                            (create_int 5)))
+                    (create_sub
+                        (create_deref
+                            (create_var "x"))
+                        (create_deref
+                            (create_var "y"))))));;
+
+
 (* λxyzt.((x (y t)) t) (z t) *)
 let lambda_ex3 = 
     create_abs "x" 
