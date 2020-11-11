@@ -32,7 +32,7 @@ let create_var_t name = VarT name;;
 
 let create_arrow_t ta tr = ArrowT (ta, tr);;
 
-let create_nat = Nat
+let create_nat = Nat;;
 
 let create_liste_t lt = ListeT lt;;
 
@@ -69,8 +69,7 @@ let rec pp_equation_list equat_list =
             print_newline ();
             pp_equation_list equats;;
 
-
-let types_set = ref StringSet.empty
+let types_set = ref StringSet.empty;;
 
 let fresh_var_t, reset_gen_t =
     let num_gen = ref 0
@@ -86,6 +85,4 @@ let new_var_t () =
     let varname = fresh_var_t () 
     in 
         types_set := StringSet.add varname !types_set; 
-        varname
-
-   
+        varname;;

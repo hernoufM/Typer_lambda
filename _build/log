@@ -1,10 +1,10 @@
-# dune build
+# dune exec ./src/main.exe
 # OCAMLPARAM: unset
 # Workspace root: /home/hernouf/Study/TAS/typeur_lambda/typeur_lambda
-$ /usr/bin/nproc > /tmp/dune820db4.output 2> /dev/null
+$ /usr/bin/nproc > /tmp/dune9f6412.output 2> /dev/null
 # Auto-detected concurrency: 8
 # disable binary cache
-$ /usr/bin/ocamlc.opt -config > /tmp/dune29e6e3.output
+$ /usr/bin/ocamlc.opt -config > /tmp/dune3cf215.output
 # Dune context:
 #  { name = "default"
 #  ; kind = "default"
@@ -105,7 +105,4 @@ $ /usr/bin/ocamlc.opt -config > /tmp/dune29e6e3.output
 #      ; windows_unicode = false
 #      }
 #  }
-$ (cd _build/default && /usr/bin/ocamldep.opt -modules -impl src/main.ml) > _build/default/src/.main.eobjs/main.ml.d
-$ (cd _build/default && /usr/bin/ocamlc.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -bin-annot -I src/.main.eobjs/byte -I lib/.typeur_lambda.objs/byte -I lib/.typeur_lambda.objs/native -no-alias-deps -opaque -open Dune__exe -o src/.main.eobjs/byte/dune__exe__Main.cmo -c -impl src/main.ml)
-$ (cd _build/default && /usr/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I src/.main.eobjs/byte -I src/.main.eobjs/native -I lib/.typeur_lambda.objs/byte -I lib/.typeur_lambda.objs/native -intf-suffix .ml -no-alias-deps -opaque -open Dune__exe -o src/.main.eobjs/native/dune__exe__Main.cmx -c -impl src/main.ml)
-$ (cd _build/default && /usr/bin/ocamlopt.opt -w @1..3@5..28@30..39@43@46..47@49..57@61..62-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -o src/main.exe lib/typeur_lambda.cmxa /usr/lib/ocaml/unix.cmxa -I /usr/lib/ocaml src/.main.eobjs/native/dune__exe.cmx src/.main.eobjs/native/dune__exe__Syntax.cmx src/.main.eobjs/native/dune__exe__Main.cmx)
+# Workspace root: /home/hernouf/Study/TAS/typeur_lambda/typeur_lambda

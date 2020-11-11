@@ -2,7 +2,6 @@ open Types;;
 open Syntax;;
 open Unification;;
 
-
 let generalise set_type typ =
     let rec varaibles_glob set_type typ =
          match typ with
@@ -18,7 +17,7 @@ let generalise set_type typ =
             | RefT typ -> varaibles_glob set_type typ
             | WeakVarT _ -> StringSet.empty (* To_check *)
     in
-        create_forall (varaibles_glob set_type typ) typ
+        create_forall (varaibles_glob set_type typ) typ;;
 
 let generalise_weak set_type typ =
     let rec remplace_var_weak typ rename =
@@ -50,11 +49,6 @@ let generalise_weak set_type typ =
                             typ)
     in
         remplace_var_weak typ (ref StringMap.empty);;
-
-
-
-
-
 
 let fresh_var_grec, reset_gen_grec =
     let alphabet = ["α";"β"; "γ";"δ"; "ε"; "ζ"; "η"; "θ"; "ι"; "κ"; "μ"; "ν"; "ξ"; "ο"; "π"; "ρ"; "σ"; "τ"; "υ"; "φ"; "χ"; "ψ"; "ω"]
@@ -258,10 +252,13 @@ let rename_grec typ =
 
 let typeur (lt:lambda_terme) =
     try
+        types_set := StringSet.empty;
         reset_gen_t ();
         reset_gen_grec ();
         let typ = typage StringMap.empty lt
         in
-            Printf.printf "Type of %s is : \n   %s\n" (string_of_lterme lt) (string_of_ltype (rename_grec typ))
+            Printf.printf "Type of %s is : \n   %s\n" (string_of_lterme lt) (string_of_ltype (rename_grec typ));
+            true
     with 
-        Typage_exc i -> Printf.printf "Terme %s is not typable %s" (string_of_lterme lt) i;;  
+        Typage_exc i -> Printf.printf "Terme %s is not typable %s" (string_of_lterme lt) i;
+                        false;;  

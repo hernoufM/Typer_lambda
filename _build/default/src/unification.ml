@@ -43,7 +43,7 @@ let rec substitue varname typ_rename typ =
                     let new_instancied = substitue varname typ_rename typ_instancied
                     in
                         w_info:=Instantied new_instancied;
-                        typ)
+                        typ);;
 
 let rec substitue_partout varname typ_rename equations : equation list=
     match equations with
@@ -111,3 +111,4 @@ let unification_etape equations : equation list=
                 | _ -> raise (Typage_exc "3")
     in
         unification_etape_rec equations [];;
+        

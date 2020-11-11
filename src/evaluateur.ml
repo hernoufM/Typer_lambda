@@ -1,7 +1,6 @@
 open Syntax;;
  
 (* Generator of variable's names *)
-
 let fresh_var, reset_gen =
     let char_gen = ref 'a'
     and num_gen = ref 0
@@ -17,7 +16,6 @@ let fresh_var, reset_gen =
                 else char_gen := char_of_int ((int_of_char !char_gen) + 1));
                 var_name),
         (function () -> char_gen := 'a'; num_gen := 0));;     
-
 
 (* Barendregt rename function. Only variables related to Abstraction are renamed *)
 let barendregt lt =
@@ -285,7 +283,6 @@ let reduce_lambda lt =
         if not (isReduced !lambda)
         then raise (Evaluation_exc "Time is out, lambda is divergent")
         else !lambda;;
-
 
 let evaluateur lt =
     try
