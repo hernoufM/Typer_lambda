@@ -1,6 +1,3 @@
-(** @canonical Dune__exe.Equation *)
-module Equation = Dune__exe__Equation
-
 (** @canonical Dune__exe.Evaluateur *)
 module Evaluateur = Dune__exe__Evaluateur
 

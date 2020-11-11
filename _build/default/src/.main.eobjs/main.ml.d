@@ -1,1 +1,1 @@
-src/main.ml: Evaluateur Syntax Typeur
+src/main.ml: Syntax

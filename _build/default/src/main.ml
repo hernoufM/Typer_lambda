@@ -1,6 +1,4 @@
-open Evaluateur;;
 open Syntax;;
-open Typeur;;
 
 let i = create_abs "x" (create_var "x")
 
