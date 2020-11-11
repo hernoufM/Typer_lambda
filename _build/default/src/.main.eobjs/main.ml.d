@@ -1,1 +1,1 @@
-src/main.ml: Lambda Type
+src/main.ml: Evaluateur Syntax Typeur

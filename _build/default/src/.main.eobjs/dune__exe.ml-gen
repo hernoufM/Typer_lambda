@@ -1,8 +1,20 @@
-(** @canonical Dune__exe.Lambda *)
-module Lambda = Dune__exe__Lambda
+(** @canonical Dune__exe.Equation *)
+module Equation = Dune__exe__Equation
+
+(** @canonical Dune__exe.Evaluateur *)
+module Evaluateur = Dune__exe__Evaluateur
 
 (** @canonical Dune__exe.Main *)
 module Main = Dune__exe__Main
 
-(** @canonical Dune__exe.Type *)
-module Type = Dune__exe__Type
+(** @canonical Dune__exe.Syntax *)
+module Syntax = Dune__exe__Syntax
+
+(** @canonical Dune__exe.Types *)
+module Types = Dune__exe__Types
+
+(** @canonical Dune__exe.Typeur *)
+module Typeur = Dune__exe__Typeur
+
+(** @canonical Dune__exe.Unification *)
+module Unification = Dune__exe__Unification
