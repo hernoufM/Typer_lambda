@@ -147,9 +147,6 @@ let instantie lt varname rempl =
         in
             instantie_rec lt varname rempl;;        
 
-(* Evaluation exception that contains description of occured problem *)
-exception Evaluation_exc of string;;
-
 (* Function that verify if lambda temre is reduced *)
 let rec isReduced lt = 
     match lt with
@@ -163,130 +160,119 @@ let rec isReduced lt =
         | Ref lt_ref -> isReduced !lt_ref        
         | _ -> false;; 
 
+(* Function that make step of reduction of lambda term *)
 let rec ltrcbv_etape lt =
-    let evaluate lt =
-        let eval_lt = ref lt
-        and start_time = ref (Unix.time ())
-        in
-            while not (isReduced !eval_lt)
-                      && (Unix.time ()) -. !start_time < 0.1 do
-                eval_lt := ltrcbv_etape !eval_lt;
-                reset_gen ();
-            done;
-            if not (isReduced !eval_lt)
-            then raise (Evaluation_exc ("Terme " ^ string_of_lterme lt ^ " is divergent"))
-            else !eval_lt
-    in
-        match lt with
-            Application(Abstraction(name,corps), argument) ->
-                let eval_arg = ltrcbv_etape argument
-                in
-                    barendregt (instantie corps name eval_arg)
-            | Application(func, argument) ->
-                let eval_func = ltrcbv_etape func
-                and eval_arg = ltrcbv_etape argument
-                in
-                    (match eval_func with
-                        Abstraction(name, corps) -> barendregt (instantie corps name eval_arg)
-                        | _ -> create_app eval_func eval_arg )
-            | Add (a,b) -> 
-                let eval_a = evaluate a
-                and eval_b = evaluate b
-                in
-                    (match eval_a,eval_b with
-                        Int a, Int b -> Int (a+b)
-                        | _ -> raise (Evaluation_exc "Argument of '+' is not int"))
-            | Sub (a,b) ->
-                let eval_a = evaluate a
-                and eval_b = evaluate b
-                in
-                    (match eval_a,eval_b with
-                        Int a, Int b -> Int (a-b)
-                        | _ -> raise (Evaluation_exc "Argument of '-' is not int"))
-            | Liste lt_l -> create_liste (List.map evaluate lt_l)
-            | Head lt_l ->
-                let eval_liste = evaluate lt_l
-                in
-                    (match eval_liste with
-                        Liste lt_l -> if lt_l = []
-                                      then raise (Evaluation_exc "Argument of 'head' is empty list")
-                                      else List.hd lt_l
-                        | _ -> raise (Evaluation_exc "Argument of 'head' is not list"))
-            | Tail lt_l ->
-                let eval_liste = evaluate lt_l
-                in
-                    (match eval_liste with
-                        Liste lt_l -> if lt_l = []
-                                      then raise (Evaluation_exc "Argument of 'tail' is empty list")
-                                      else create_liste (List.tl lt_l)
-                        | _ -> raise (Evaluation_exc "Argument of 'tail' is not list"))
-            | Cons (elt,lt_l) ->
-                let eval_elt = ltrcbv_etape elt
-                and eval_liste = evaluate lt_l
-                in
-                    (match eval_liste with
-                        Liste lt_l -> create_liste (eval_elt::lt_l)
-                        | _ -> raise (Evaluation_exc "Argument of 'cons' is not list"))
-            | IfZte (cond,conseq,alt) ->
-                let eval_cond = evaluate cond
-                in
-                    (match eval_cond with
-                        Int i -> if i=0
-                                 then ltrcbv_etape conseq
-                                 else ltrcbv_etape alt
-                        | _ -> raise (Evaluation_exc "Condition is not int"))
-            | IfEte (cond,conseq,alt) ->
-                let eval_cond = evaluate cond
-                in
-                    (match eval_cond with
-                        Liste lt_l -> if lt_l=[]
-                                      then ltrcbv_etape conseq
-                                      else ltrcbv_etape alt
-                        | _ -> raise (Evaluation_exc "Condition is not list"))
-            | Fix f ->
-                (match f with
-                    Abstraction (var,corps) -> instantie corps var (create_fix f)
-                    | _ -> raise (Evaluation_exc "Fix couldn't be applied on this terme"))
-            | Let (varname,expr,corps) ->
-                let eval_expr = evaluate expr
-                in
-                    ltrcbv_etape (instantie corps varname eval_expr) 
-            | Ref lt_ref -> 
-                if isReduced !lt_ref
-                then lt
-                else (lt_ref := evaluate !lt_ref;
-                      lt)
-            | Deref lt ->
-                let eval_lt = evaluate lt
-                in
-                    (match eval_lt with
-                        Ref lt -> ltrcbv_etape !lt
-                        | _ -> raise (Evaluation_exc "Deref (!) couldn't be applied on this terme"))
-            | Assign (lt_ref,lt) ->
-                let eval_lt_ref = evaluate lt_ref
-                and eval_lt = evaluate lt
-                in
-                    (match eval_lt_ref with
-                        Ref lt -> lt := eval_lt; create_unit
-                        | _ -> raise (Evaluation_exc "Firste argument of assign (:=) is not a refernece"))
-            | x -> x;;
-
-let reduce_lambda lt = 
-    let lambda = ref lt
+    match lt with
+        Application(Abstraction(name,corps), argument) ->
+            let eval_arg = ltrcbv_etape argument
+            in
+                barendregt (instantie corps name eval_arg)
+        | Application(func, argument) ->
+            let eval_func = ltrcbv_etape func
+            and eval_arg = ltrcbv_etape argument
+            in
+                (match eval_func with
+                    Abstraction(name, corps) -> barendregt (instantie corps name eval_arg)
+                    | _ -> create_app eval_func eval_arg )
+        | Add (a,b) -> 
+            let eval_a = evaluate a
+            and eval_b = evaluate b
+            in
+                (match eval_a,eval_b with
+                    Int a, Int b -> Int (a+b)
+                    | _ -> raise (Evaluation_exc "Argument of '+' is not int"))
+        | Sub (a,b) ->
+            let eval_a = evaluate a
+            and eval_b = evaluate b
+            in
+                (match eval_a,eval_b with
+                    Int a, Int b -> Int (a-b)
+                    | _ -> raise (Evaluation_exc "Argument of '-' is not int"))
+        | Liste lt_l -> create_liste (List.map evaluate lt_l)
+        | Head lt_l ->
+            let eval_liste = evaluate lt_l
+            in
+                (match eval_liste with
+                    Liste lt_l -> if lt_l = []
+                                  then raise (Evaluation_exc "Argument of 'head' is empty list")
+                                  else List.hd lt_l
+                    | _ -> raise (Evaluation_exc "Argument of 'head' is not list"))
+        | Tail lt_l ->
+            let eval_liste = evaluate lt_l
+            in
+                (match eval_liste with
+                    Liste lt_l -> if lt_l = []
+                                  then raise (Evaluation_exc "Argument of 'tail' is empty list")
+                                  else create_liste (List.tl lt_l)
+                    | _ -> raise (Evaluation_exc "Argument of 'tail' is not list"))
+        | Cons (elt,lt_l) ->
+            let eval_elt = ltrcbv_etape elt
+            and eval_liste = evaluate lt_l
+            in
+                (match eval_liste with
+                    Liste lt_l -> create_liste (eval_elt::lt_l)
+                    | _ -> raise (Evaluation_exc "Argument of 'cons' is not list"))
+        | IfZte (cond,conseq,alt) ->
+            let eval_cond = evaluate cond
+            in
+                (match eval_cond with
+                    Int i -> if i=0
+                             then ltrcbv_etape conseq
+                             else ltrcbv_etape alt
+                    | _ -> raise (Evaluation_exc "Condition is not int"))
+        | IfEte (cond,conseq,alt) ->
+            let eval_cond = evaluate cond
+            in
+                (match eval_cond with
+                    Liste lt_l -> if lt_l=[]
+                                  then ltrcbv_etape conseq
+                                  else ltrcbv_etape alt
+                    | _ -> raise (Evaluation_exc "Condition is not list"))
+        | Fix f ->
+            (match f with
+                Abstraction (var,corps) -> instantie corps var (create_fix f)
+                | _ -> raise (Evaluation_exc "Fix couldn't be applied on this terme"))
+        | Let (varname,expr,corps) ->
+            let eval_expr = evaluate expr
+            in
+                ltrcbv_etape (instantie corps varname eval_expr) 
+        | Ref lt_ref -> 
+            if isReduced !lt_ref
+            then lt
+            else (lt_ref := evaluate !lt_ref;
+                  lt)
+        | Deref lt ->
+            let eval_lt = evaluate lt
+            in
+                (match eval_lt with
+                    Ref lt -> ltrcbv_etape !lt
+                    | _ -> raise (Evaluation_exc "Deref (!) couldn't be applied on this terme"))
+        | Assign (lt_ref,lt) ->
+            let eval_lt_ref = evaluate lt_ref
+            and eval_lt = evaluate lt
+            in
+                (match eval_lt_ref with
+                    Ref lt -> lt := eval_lt; create_unit
+                    | _ -> raise (Evaluation_exc "First argument of assign (:=) is not a refernece"))
+        | x -> x
+(* Function that evaluate lambda term untill it couldn't be reduced more *)
+and evaluate lt =
+    let eval_lt = ref lt
     and start_time = Unix.time ()
     in
-        while not (isReduced !lambda) && (Unix.time ()) -. start_time < 0.1 do
-            lambda := ltrcbv_etape !lambda;
+        while not (isReduced !eval_lt)
+                  && (Unix.time ()) -. start_time < 0.2 do
+            eval_lt := ltrcbv_etape !eval_lt;
             reset_gen ();
         done;
-        print_newline();
-        if not (isReduced !lambda)
-        then raise (Evaluation_exc "Time is out, lambda is divergent")
-        else !lambda;;
+        if not (isReduced !eval_lt)
+        then raise (Evaluation_exc ("Terme " ^ string_of_lterme lt ^ " is divergent"))
+        else !eval_lt
 
+(* Main function of evaluateur *)
 let evaluateur lt =
     try
-        let lt_res = reduce_lambda lt
+        let lt_res = evaluate lt
         in
-            Printf.printf "Result of %s is : \n   %s\n" (string_of_lterme lt) (string_of_lterme lt_res)
-    with Evaluation_exc i -> Printf.printf "Terme %s is couldn't be evaluate %s" (string_of_lterme lt) i;;  
+            Printf.printf "Result of %s is : \n   %s" (string_of_lterme lt) (string_of_lterme lt_res)
+    with Evaluation_exc mess -> Printf.printf "\nTerm %s is couldn't be evaluate : %s" (string_of_lterme lt) mess;;  

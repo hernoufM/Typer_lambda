@@ -1,5 +1,6 @@
 open Syntax;;
 
+(* Type of lambda type *)
 type lambda_type = 
     VarT of string
     | ArrowT of lambda_type * lambda_type
@@ -12,6 +13,8 @@ type lambda_type =
 and weak_var_info =
     Not_instantied of string
     | Instantied of lambda_type;;
+
+(* Pretty-printer *)
 
 let rec string_of_ltype t =
     match t with
@@ -27,6 +30,8 @@ let rec string_of_ltype t =
                                 | Instantied lt -> string_of_ltype lt);;
 
 let pp_ltype t = Printf.fprintf stdout "%s" (string_of_ltype t);;
+
+(* Constructors of lambda type *)
 
 let create_var_t name = VarT name;;
 
@@ -44,6 +49,10 @@ let create_ref_t lt = RefT lt;;
 
 let create_weak_var_t name = WeakVarT (ref (Not_instantied name));;
 
+(* Global variabl that contains all type's variables occured during jugement of type *)
+let types_set = ref StringSet.empty;;
+
+(* Function that says if 2 lambda type are equals *)
 let rec stype_egal t1 t2 =
     match t1,t2 with
         VarT name1, VarT name2 -> name1=name2
@@ -55,10 +64,13 @@ let rec stype_egal t1 t2 =
         | WeakVarT w_info1, WeakVarT w_info2 -> w_info1=w_info2
         | _ -> false ;;
 
+(* Type exception that contains description of occured problem *)
 exception Typage_exc of string;;
 
+(* Type of equation *)
 type equation = lambda_type * lambda_type;;
 
+(* Pretty-printer for equation list *)
 let rec pp_equation_list equat_list =
     match equat_list with
         [] -> ()
@@ -69,8 +81,7 @@ let rec pp_equation_list equat_list =
             print_newline ();
             pp_equation_list equats;;
 
-let types_set = ref StringSet.empty;;
-
+(* Generator of type's varible *)
 let fresh_var_t, reset_gen_t =
     let num_gen = ref 0
     in
@@ -81,6 +92,7 @@ let fresh_var_t, reset_gen_t =
                 varname),
         (function () -> num_gen := 0));;  
 
+(* Function that generate new variable and add it to set of occured variables *)
 let new_var_t () = 
     let varname = fresh_var_t () 
     in 

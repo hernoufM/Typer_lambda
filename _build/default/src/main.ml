@@ -53,51 +53,52 @@ let triplet_ex =
 (* s i i i *)
 let s_i_i_i_ex = create_app (create_app (create_app s i) i) i;;
 
-(* puisse trois deux *)
-let puiss_lambda_ex = 
-    (* λf.λx.f (f x) *)
-    let deux = 
-        create_abs "f"
-            (create_abs "x"
-                (create_app
+(* λf.λx.f (f x) *)
+let deux = 
+    create_abs "f"
+        (create_abs "x"
+            (create_app
+                (create_var "f")
+                (create_app 
                     (create_var "f")
-                    (create_app 
-                        (create_var "f")
-                        (create_var "x"))))
-    (* λf.λx.f (f (f x)) *)
-    and trois = 
-        create_abs "f"
-            (create_abs "x"
-                (create_app
-                    (create_var "f")
-                    (create_app 
-                        (create_var "f")
-                        (create_app 
-                            (create_var "f")
-                            (create_var "x")))))
-    (* λn.λm.λf.λe.(n m) f e *)
-    and puiss =
-        create_abs "n"
-            (create_abs "m"
-                (create_abs "f"
-                    (create_abs "e"
-                        (create_app
-                            (create_app 
-                                (create_app
-                                    (create_var "n")
-                                    (create_var "m"))
-                                (create_var "f"))
-                            (create_var "e")))))
-    in
-        create_app (create_app puiss trois) deux;;
+                    (create_var "x"))));;
 
-(* (λx.λy.(((λx.λy.x) x y) + ((λx.λy.y) x y))) 7 5 *)
+(* λf.λx.f (f (f x)) *)
+let trois = 
+    create_abs "f"
+        (create_abs "x"
+            (create_app
+                (create_var "f")
+                (create_app 
+                    (create_var "f")
+                    (create_app 
+                        (create_var "f")
+                        (create_var "x")))));;
+
+(* λn.λm.λf.λe.(n m) f e *)
+let puiss =
+    create_abs "n"
+        (create_abs "m"
+            (create_abs "f"
+                (create_abs "e"
+                    (create_app
+                        (create_app 
+                            (create_app
+                                (create_var "n")
+                                (create_var "m"))
+                            (create_var "f"))
+                        (create_var "e")))));;
+
+(* puisse trois deux *)
+let puiss_lambda_ex = create_app (create_app puiss trois) deux;;
+
+(* (λx.λy.((λx.λy.x) x y) + ((λx.λy.y) x y)) 7 5 *)
 let add_ex = 
     create_app
         (create_app
             (create_abs "x"
                 (create_abs "y"
-                    (create_sub
+                    (create_add
                         (create_app
                             (create_app
                                 (create_abs "x"
@@ -187,7 +188,7 @@ let list_op_ex =
                         (create_var "x")))))
         (create_liste [create_int 1]);;
 
-(*  if_zero ((λx.x 1) - 1) then 5 else (head []) *)
+(*  if_zero ((id 1) - 1) then 5 else (head []) *)
 let if_zero_ex = 
     create_ifZte
         (create_sub
@@ -201,7 +202,7 @@ let if_zero_ex =
             (create_liste []));;
 
 (*  Evaluation : KO
-    if_zero ((λx.x 1) + 1) then 5 else (head [])) *)
+    if_zero ((λx.x 1) + 1) then 5 else (head []) *)
 let if_zero_ko_ex = 
     create_ifZte
         (create_add
@@ -212,7 +213,7 @@ let if_zero_ko_ex =
             (create_int 1))
         (create_int 5)
         (create_head
-            (create_liste [create_abs "x" (create_var "x")]));;
+            (create_liste []));;
 
 (*  if_empty (tail [1]) then 5 else (head []) *)
 let if_empty_ex = 
@@ -223,25 +224,26 @@ let if_empty_ex =
         (create_head
             (create_liste []));;
 
-(*  (fix (λsum.λx.if_zero x then 0 else ((sum (x-1))+ x))) 100 *)
-let sum_100_ex = 
-    create_app
-        (create_fix
-            (create_abs "sum"
-                (create_abs "x"
-                    (create_ifZte
-                        (create_var "x")
-                        (create_int 0)
-                        (create_add
-                            (create_app
-                                (create_var "sum")
-                                (create_sub
-                                    (create_var "x")
-                                    (create_int 1)))
-                            (create_var "x"))))))
-        (create_int 100);;
+(*  fix (λsum.λx.if_zero x then 0 else ((sum (x-1))+ x)) *)
+let sum = 
+    create_fix
+        (create_abs "sum"
+            (create_abs "x"
+                (create_ifZte
+                    (create_var "x")
+                    (create_int 0)
+                    (create_add
+                        (create_app
+                            (create_var "sum")
+                            (create_sub
+                                (create_var "x")
+                                (create_int 1)))
+                        (create_var "x")))));;
 
-(*  let x = (head [4]) in (λx.(x+x)) x *)
+(* sum 100 *)
+let sum_100_ex = create_app sum (create_int 100);;
+
+(*  let x = (head [4]) in (λx.x+x) x *)
 let let1_ex = 
     create_let "x"
         (create_head
@@ -363,7 +365,7 @@ let poly_faible1_ex =
 
 (* Polymorphisme faible (example de cours)   
    Typage : ECHEC
-   let x = ref (λx.x) in let _ = x:=λx.(x+1) in (!x 5) *)
+   let x = ref (λx.x) in let _ = x:=λx.(x+1) in (!x []) *)
 let poly_faible2_ex =
     create_let "x"
         (create_ref 
@@ -382,7 +384,7 @@ let poly_faible2_ex =
                 (create_liste [])));;
 
 (* Polymorphisme faible (exemple de cours)
-   let a = λx.λy.(x y) in let g = a (λx.x) in g *)
+   let a = λx.λy.(x y) in let g = a id in g *)
 let poly_faible3_ex =
     create_let "a"
         (create_abs "x"
@@ -398,8 +400,7 @@ let poly_faible3_ex =
             (create_var "g"));;
 
 (* Polymorphisme faible (exemple de cours) suite
-   let a = λx.λy.(x y) in let g = a (λx.x) in let _ = g 5 in g
-   *)
+   let a = λx.λy.(x y) in let g = a (λx.x) in let _ = g 5 in g*)
 let poly_faible3_2_ex =
     create_let "a"
         (create_abs "x"
@@ -420,37 +421,41 @@ let poly_faible3_2_ex =
 
 
 let lambda_termes = [
-        ("i",i);
+        ("id",i);
         ("app",app);
         ("k",k);
         ("s",s);
-        ("s_k_k_ex",s_k_k_ex);
-        ("delta",delta);
-        ("omega",omega);
-        ("k_i_om_ex",k_i_om_ex);
-        ("triplet_ex",triplet_ex);
-        ("s_i_i_i_ex",s_i_i_i_ex);
-        ("puiss_lambda_ex",puiss_lambda_ex);
-        ("add_ex",add_ex);
-        ("liste_ex",liste_ex);
-        ("liste2_ex",liste2_ex);
+        ("s k k",s_k_k_ex);
+        ("δ",delta);
+        ("Ω",omega);
+        ("k id Ω",k_i_om_ex);
+        ("λx.(x x x)",triplet_ex);
+        ("s id id id",s_i_i_i_ex);
+        ("λf.λx.(f (f x))",deux);
+        ("λf.λx.(f (f (f x)))",trois);
+        ("puiss",puiss);
+        ("puiss deux trois",puiss_lambda_ex);
+        ("(λx.λy.((λx.λy.x) x y) + ((λx.λy.y) x y)) 7 5",add_ex);
+        ("[id, id id, id id id, k id s]",liste_ex);
+        ("(λx.[(0+x),(0-x),id x]) 3",liste2_ex);
+        ("(λx.cons (id 3) (cons (head x) (tail x))) [1]",list_op_ex);
+        ("if_zero ((id 1) - 1) then 5 else (head [])",if_zero_ex);
+        ("if_zero ((id 1) + 1) then 5 else (head [])",if_zero_ko_ex);
+        ("if_empty (tail [1]) then 5 else (head [])",if_empty_ex);
+        ("sum", sum);
+        ("sum 100",sum_100_ex);
         ("map",map);
-        ("map_ex",map_ex);
-        ("list_op_ex",list_op_ex);
-        ("if_zero_ex",if_zero_ex);
-        ("if_zero_ko_ex",if_zero_ko_ex);
-        ("if_empty_ex",if_empty_ex);
-        ("sum_100_ex",sum_100_ex);
-        ("let1_ex",let1_ex);
-        ("let2_ex",let2_ex);
-        ("let3_ex",let3_ex);
-        ("let4_ex",let4_ex);
-        ("let5_ex",let5_ex);
-        ("ref_deref_assign_ex",ref_deref_assign_ex);
-        ("poly_faible1_ex",poly_faible1_ex);
-        ("poly_faible2_ex",poly_faible2_ex);
-        ("poly_faible3_ex",poly_faible3_ex);
-        ("poly_faible3_2_ex",poly_faible3_2_ex)
+        ("map (λx.x+1) [1,2,3]",map_ex);
+        ("let x = (head [4]) in (λx.x+x) x ",let1_ex);
+        ("let f = id in f f 3",let2_ex);
+        ("let add = (λx.λy.x+y) in let add_3 = add 3 in add_3 5",let3_ex);
+        ("let add = (λx.λy.x+y) in let add_3 = add 3 in add_3",let4_ex);
+        ("let l = [] in let l1 = (cons id l) in  let l2 = (cons 5 l) in ((head l1) (head l2))",let5_ex);
+        ("let x = ref 2 in let y = ref 5 in let _ = x:=!x+8 in let _ = y=!y+2 in !x-!y",ref_deref_assign_ex);
+        ("let l = ref [] in let _ = l:=[(λx.x)] in (head !l) + 2",poly_faible1_ex);
+        ("let x = ref id in let _ = x:=(λx.x+1) in (!x [])",poly_faible2_ex);
+        ("let a = λx.λy.(x y) in let g = a id in g",poly_faible3_ex);
+        ("let a = λx.λy.(x y) in let g = a id in let _ = g 5 in g",poly_faible3_2_ex)
     ];;
 
 let clear_screen () =
@@ -479,7 +484,7 @@ let choix_lambda_menu () =
             Printf.printf "\n\n";
             Printf.printf "Choose your lambda term:\n";
             List.iteri 
-                (fun i (_,lt) -> Printf.printf " (%d) %s\n" i (string_of_lterme lt)) 
+                (fun i (descr,_) -> Printf.printf " (%d) %s\n" i descr ) 
                 lambda_termes; 
             Printf.printf " (%d) Exit to main menu\n" nombre_choix;
             choix_lambda := choix_0_n nombre_choix;
@@ -487,18 +492,13 @@ let choix_lambda_menu () =
             then exit:=true
             else
                (let (_, lt) = List.nth lambda_termes !choix_lambda
-                and type_correct = ref true 
                 in
                     clear_screen ();
                     Printf.printf "========================== Typer ==========================\n\n";
-                    type_correct := typeur lt;
-                    if !type_correct 
-                    then 
-                         (Printf.printf "\n\n========================== Evaluateur ==========================\n\n";
-                          evaluateur lt;
-                          Printf.printf "\n\n============================== END ==============================n\n")
-                    else
-                        Printf.printf "\n\n============================== END ==============================n\n";
+                    typeur lt;
+                    Printf.printf "\n========================== Evaluateur ==========================\n\n";
+                    evaluateur lt;
+                    Printf.printf "\n\n============================== END ==============================\n";
                     Printf.printf " (0) To lambdas\n";
                     let _ = choix_0_n 0 in ())
         done;;

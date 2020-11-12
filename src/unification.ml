@@ -81,13 +81,13 @@ let unification_etape equations : equation list=
                          else unification_etape_rec 
                                 (substitue_partout varname typ equats)
                                 (substitue_partout varname typ res)
-                    else raise (Typage_exc "1")
+                    else raise (Typage_exc ("Variable of type " ^ varname ^ " occurs inside " ^ (string_of_ltype typ)))
                 | (typ, VarT varname)::equats -> 
                     if not (occur_check varname typ)
                     then unification_etape_rec 
                             (substitue_partout varname typ equats)
                             (substitue_partout varname typ res)
-                    else raise (Typage_exc "2")
+                    else raise (Typage_exc ("Variable " ^ varname ^ " occurs inside " ^ (string_of_ltype typ)))
                 | (ArrowT (typ_arg1,typ_res1),ArrowT (typ_arg2,typ_res2))::equats ->
                     unification_etape_rec  equats ((typ_arg1,typ_arg2)::(typ_res1,typ_res2)::res)
                 | (ListeT elt_t1, ListeT elt_t2)::equats ->
@@ -108,7 +108,7 @@ let unification_etape equations : equation list=
                             unification_etape_rec equats res
                         | Instantied typ_instancied ->
                             unification_etape_rec equats ((typ, typ_instancied)::res))
-                | _ -> raise (Typage_exc "3")
+                | (typ1,typ2)::_  -> raise (Typage_exc ("Type " ^ (string_of_ltype typ1) ^ " is not equals to type " ^ (string_of_ltype typ2)))
     in
         unification_etape_rec equations [];;
         

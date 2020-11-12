@@ -66,7 +66,12 @@ let fresh_var_grec, reset_gen_grec =
 let rec gen_equas env lt : equation list =
     let rec gen_equas_rec env lt typ: equation list =
             match lt with
-                Var varname -> [(StringMap.find varname env, typ)]
+                Var varname -> 
+                    let typ_var_opt = StringMap.find_opt varname env
+                    in    
+                        (match typ_var_opt with
+                            Some typ_var -> [(typ_var, typ)]
+                            | None -> raise (Typage_exc ("Unbound variable " ^ varname)))
                 | Abstraction (varname, corps) -> 
                     let vart_arg = create_var_t (new_var_t ())
                     and vart_corps = create_var_t (new_var_t ())
@@ -133,10 +138,6 @@ let rec gen_equas env lt : equation list =
                                 let liste_alt = gen_equas_rec env alt typ 
                                 in
                                     liste_cond @ (liste_conseq @ liste_alt) 
-                | Fix (Abstraction (fname, corps)) ->
-                    let vart_f = create_var_t (new_var_t ())
-                    in
-                        (typ,vart_f)::(gen_equas_rec (StringMap.add fname vart_f env) corps vart_f)
                 | Let (varname,expr,corp) ->
                     if non_expansive_reduced expr
                     then
@@ -167,41 +168,41 @@ let rec gen_equas env lt : equation list =
                             let liste_lt = gen_equas_rec env lt var_t
                             in
                                 (typ, create_unit_t)::(liste_lt_ref @ liste_lt)
-                | _ -> raise (Typage_exc "4")
-        in
-            try 
-                let typ = create_var_t (new_var_t ())
-                in
-                    let equations = gen_equas_rec env lt typ 
+                | Fix (Abstraction (fname, corps)) ->
+                    let vart_f = create_var_t (new_var_t ())
                     in
-                        (create_var_t "?",typ)::equations
-            with Not_found -> raise (Typage_exc "5")
-    and typage env lt =
-        let start_time = Unix.time ()
-        and equations = ref (gen_equas env lt)
-        and i = ref 0
+                        (typ,vart_f)::(gen_equas_rec (StringMap.add fname vart_f env) corps vart_f)
+                | _ -> raise (Typage_exc ("Fix couldn't be applied on this terme"))
         in 
-            let get_type_from_equations equations = 
-                match equations with
-                    [(VarT "?",typ)] -> Some typ
-                    | _ -> None 
+            let typ = create_var_t (new_var_t ())
             in
-                Printf.printf "Typage of %s:\n\n" (string_of_lterme lt);
-                Printf.printf "Equations:\n";
+                let equations = gen_equas_rec env lt typ 
+                in
+                    (create_var_t "?",typ)::equations
+and typage env lt =
+    let start_time = Unix.time ()
+    and equations = ref (gen_equas env lt)
+    and i = ref 0
+    in 
+        let get_type_from_equations equations = 
+            match equations with
+                [(VarT "?",typ)] -> Some typ
+                | _ -> None 
+        in
+            Printf.printf "---------Typage of %s---------\n\n" (string_of_lterme lt);
+            Printf.printf "___________Equations___________\n";
+            pp_equation_list !equations;
+            while get_type_from_equations !equations = None 
+                && (Unix.time ()) -. start_time < 0.1 do
+                Printf.printf "..............Tours %d..............\n" !i;
+                equations := unification_etape !equations;
                 pp_equation_list !equations;
-                Printf.printf "\n";
-                while get_type_from_equations !equations = None 
-                    && (Unix.time ()) -. start_time < 0.1 do
-                    equations := unification_etape !equations;
-                    Printf.printf "Tours %d\n" !i;
-                    pp_equation_list !equations;
-                    i:=!i+1;
-                    Printf.printf "\n"
-                done;
-                Printf.printf "\n\n";
-                match get_type_from_equations !equations with
-                    Some typ -> typ
-                    | None -> raise (Typage_exc "6");;
+                i:=!i+1;
+            done;
+            Printf.printf "...................................\n\n";
+            match get_type_from_equations !equations with
+                Some typ -> typ
+                | None -> raise (Typage_exc ("No solution for equation system for term " ^ (string_of_lterme lt)));;
 
 let rename_grec typ =
     let renamed_weak = ref []
@@ -257,8 +258,6 @@ let typeur (lt:lambda_terme) =
         reset_gen_grec ();
         let typ = typage StringMap.empty lt
         in
-            Printf.printf "Type of %s is : \n   %s\n" (string_of_lterme lt) (string_of_ltype (rename_grec typ));
-            true
+            Printf.printf "Type of %s is : \n   %s\n" (string_of_lterme lt) (string_of_ltype (rename_grec typ))
     with 
-        Typage_exc i -> Printf.printf "Terme %s is not typable %s" (string_of_lterme lt) i;
-                        false;;  
+        Typage_exc mess -> Printf.printf "\nTerme %s is not typable : %s\n" (string_of_lterme lt) mess;;  

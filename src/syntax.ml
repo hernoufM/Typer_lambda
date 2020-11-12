@@ -1,5 +1,4 @@
-(* Types of lambda *)
-
+(* Type of lambda *)
 type lambda_terme = 
     Var of string
     | Abstraction of string * lambda_terme 
@@ -84,6 +83,7 @@ let create_assign lt_ref lt = Assign (lt_ref,lt);;
 
 let create_unit = Unit;;
 
+(* Function that says if an expression is not-expansive *)
 let rec non_expansive_reduced lt =
     match lt with
         | Var _ -> true
@@ -103,6 +103,8 @@ let rec non_expansive_reduced lt =
         | Unit -> true
         | _ -> false;;
 
+(* Evaluation exception that contains description of occured problem *)
+exception Evaluation_exc of string;;
 
 (* Map of string -> 'a module *)
 module StringMap = Map.Make(String);;
