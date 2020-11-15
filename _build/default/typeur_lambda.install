@@ -6,3 +6,6 @@ lib: [
 bin: [
   "_build/install/default/bin/typeur_lambda"
 ]
+doc: [
+  "_build/install/default/doc/typeur_lambda/README.md"
+]

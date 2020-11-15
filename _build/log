@@ -1,10 +1,10 @@
-# dune exec ./src/main.exe
+# dune exec src/main.exe
 # OCAMLPARAM: unset
 # Workspace root: /home/hernouf/Study/TAS/typeur_lambda/typeur_lambda
-$ /usr/bin/nproc > /tmp/duneec5ebc.output 2> /dev/null
+$ /usr/bin/nproc > /tmp/duneb58c0b.output 2> /dev/null
 # Auto-detected concurrency: 8
 # disable binary cache
-$ /usr/bin/ocamlc.opt -config > /tmp/dune75faf0.output
+$ /usr/bin/ocamlc.opt -config > /tmp/dune808281.output
 # Dune context:
 #  { name = "default"
 #  ; kind = "default"
